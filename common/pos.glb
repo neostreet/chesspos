@@ -1,0 +1,26 @@
+#ifdef MAKE_GLOBALS_HERE
+#define GLOBAL /* nothing = real object declaration */
+#else
+#define GLOBAL extern
+#endif
+
+GLOBAL char err_msg[80];
+
+GLOBAL int dbg_move;
+GLOBAL int debug_level;
+GLOBAL FILE *debug_fptr;
+
+#ifdef MAKE_GLOBALS_HERE
+char piece_ids[] = "RNBGK";
+char *piece_names[] = {
+  "PAWN",
+  "ROOK",
+  "KNIGHT",
+  "BISHOP",
+  "GARGANTUA",
+  "KING"
+};
+#else
+extern char piece_ids[];
+extern char *piece_names[];
+#endif
