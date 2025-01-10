@@ -45,3 +45,26 @@ void set_initial_board(unsigned char *board)
   for (n = 0; n < CHARS_IN_BOARD; n++)
     board[n] = initial_board[n];
 }
+
+int read_position(char *filename,unsigned char *board)
+{
+  int fhndl;
+  unsigned int bytes_to_read;
+  unsigned int bytes_read;
+
+  if ((fhndl = open(filename,O_RDONLY | O_BINARY)) == -1)
+    return 1;
+
+  bytes_to_read = CHARS_IN_BOARD;
+
+  bytes_read = read(fhndl,(char *)board,bytes_to_read);
+
+  if (bytes_read != bytes_to_read) {
+    close(fhndl);
+    return 2;
+  }
+
+  close(fhndl);
+
+  return 0;
+}
