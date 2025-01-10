@@ -25,7 +25,7 @@ static int height_in_pixels;
 char couldnt_get_status[] = "couldn't get status of %s\n";
 char couldnt_open[] = "couldn't open %s\n";
 
-static char read_position_failure[] = "read_position() of %s failed: %d";
+static char read_game_position_failure[] = "read_game_position() of %s failed: %d";
 
 static char chesspos_piece_bitmap_name[] = "BIGBMP";
 
@@ -103,8 +103,7 @@ static char szTitle[100];    // The title bar text
 int bHavePos;
 int afl_dbg;
 
-static unsigned char curr_board[CHARS_IN_BOARD];  /* 8 columns * 8 rows / 2 (nibbles per char) */
-static int orientation;
+static struct game_position curr_position;
 
 // Forward declarations of functions included in this code module:
 
@@ -136,7 +135,7 @@ int APIENTRY WinMain(HINSTANCE hInstance,
   MSG msg;
   char *cpt;
 
-  set_initial_board(curr_board);
+  set_initial_board(curr_position.board);
 
   width_in_pixels = WIDTH_IN_PIXELS;
   height_in_pixels = HEIGHT_IN_PIXELS;
@@ -414,7 +413,7 @@ void invalidate_square(HWND hWnd,int square)
   rank = RANK_OF(square);
   file = FILE_OF(square);
 
-  if (!orientation)
+  if (!curr_position.orientation)
     rank = (NUM_RANKS - 1) - rank;
   else
     file = (NUM_FILES - 1) - file;
@@ -487,10 +486,10 @@ void do_paint(HWND hWnd)
         fprintf(debug_fptr,"do_paint: m = %d, n = %d\n",m,n);
       }
 
-      if (!orientation)
-        piece = get_piece2(curr_board,(NUM_RANKS - 1) - m,n);
+      if (!curr_position.orientation)
+        piece = get_piece2(curr_position.board,(NUM_RANKS - 1) - m,n);
       else
-        piece = get_piece2(curr_board,m,(NUM_FILES - 1) - n);
+        piece = get_piece2(curr_position.board,m,(NUM_FILES - 1) - n);
 
       piece_offset = get_piece_offset(piece,m,n);
 
@@ -567,7 +566,7 @@ void do_paint(HWND hWnd)
         bSelectedFont = TRUE;
       }
 
-      if (!orientation)
+      if (!curr_position.orientation)
         buf[0] = '1' + (NUM_RANKS - 1) - m;
       else
         buf[0] = '1' + m;
@@ -595,7 +594,7 @@ void do_paint(HWND hWnd)
         bSelectedFont = TRUE;
       }
 
-      if (!orientation)
+      if (!curr_position.orientation)
         buf[0] = 'a' + m;
       else
         buf[0] = 'a' + (NUM_FILES - 1) - m;
@@ -638,21 +637,21 @@ static void handle_char_input(HWND hWnd,WPARAM wParam)
 
 static void toggle_orientation(HWND hWnd)
 {
-  orientation ^= 1;
+  curr_position.orientation ^= 1;
 
   invalidate_board_and_coords(hWnd);
 }
 
-void do_new(HWND hWnd,unsigned char *board,char *name)
+void do_new(HWND hWnd,struct game_position *position_pt,char *name)
 {
   char *cpt;
 
   if ((cpt = getenv("DEBUG_ORIENTATION")) != NULL)
-    orientation = atoi(cpt);
+    position_pt->orientation = atoi(cpt);
   else
-    orientation = 0;
+    position_pt->orientation = 0;
 
-  set_initial_board(board);
+  set_initial_board(position_pt->board);
   invalidate_board(hWnd);
 
   if (name == NULL)
@@ -665,12 +664,12 @@ void do_new(HWND hWnd,unsigned char *board,char *name)
   SetWindowText(hWnd,szTitle);
 }
 
-void do_read(HWND hWnd,LPSTR name,unsigned char *board)
+void do_read(HWND hWnd,LPSTR name,struct game_position *position_pt)
 {
   int retval;
   char buf[256];
 
-  retval = read_position(name,board);
+  retval = read_game_position(name,position_pt);
 
   if (!retval) {
     bHavePos = TRUE;
@@ -681,7 +680,7 @@ void do_read(HWND hWnd,LPSTR name,unsigned char *board)
     InvalidateRect(hWnd,NULL,TRUE);
   }
   else {
-    wsprintf(buf,read_position_failure,name,retval);
+    wsprintf(buf,read_game_position_failure,name,retval);
     MessageBox(hWnd,buf,NULL,MB_OK);
   }
 }
@@ -752,9 +751,9 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 
       // read the game passed on the command line, if there is one
       if (szPosFile[0])
-        do_read(hWnd,szPosFile,curr_board);
+        do_read(hWnd,szPosFile,&curr_position);
       else
-        do_new(hWnd,curr_board,NULL);
+        do_new(hWnd,&curr_position,NULL);
 
       InvalidateRect(hWnd,NULL,TRUE);
 
