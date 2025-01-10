@@ -25,6 +25,8 @@ static int height_in_pixels;
 char couldnt_get_status[] = "couldn't get status of %s\n";
 char couldnt_open[] = "couldn't open %s\n";
 
+static char read_position_failure[] = "read_position() of %s failed: %d";
+
 static char chesspos_piece_bitmap_name[] = "BIGBMP";
 
 static HANDLE chesspos_piece_bitmap_handle;
@@ -40,7 +42,7 @@ All files (*.*)\0\
 \0\
 \0\
 ";
-static char chesspos_ext[] = "garg";
+static char chesspos_ext[] = "pos";
 
 static TCHAR szPosFile[MAX_PATH];
 
@@ -98,9 +100,11 @@ static HWND hWndToolBar;
 static char szAppName[100];  // Name of the app
 static char szTitle[100];    // The title bar text
 
+int bHavePos;
 int afl_dbg;
 
-unsigned char board[CHARS_IN_BOARD];  /* 8 columns * 8 rows / 2 (nibbles per char) */
+static unsigned char curr_board[CHARS_IN_BOARD];  /* 8 columns * 8 rows / 2 (nibbles per char) */
+static int orientation;
 
 // Forward declarations of functions included in this code module:
 
@@ -132,7 +136,7 @@ int APIENTRY WinMain(HINSTANCE hInstance,
   MSG msg;
   char *cpt;
 
-  set_initial_board(board);
+  set_initial_board(curr_board);
 
   width_in_pixels = WIDTH_IN_PIXELS;
   height_in_pixels = HEIGHT_IN_PIXELS;
@@ -187,7 +191,7 @@ int APIENTRY WinMain(HINSTANCE hInstance,
   // Initialize global strings
   lstrcpy (szAppName, appname);
 
-  // save name of Gargantua game
+  // save name of Chesspos game
   lstrcpy(szPosFile,lpCmdLine);
 
   if (debug_level == 2) {
@@ -410,7 +414,10 @@ void invalidate_square(HWND hWnd,int square)
   rank = RANK_OF(square);
   file = FILE_OF(square);
 
-  rank = (NUM_RANKS - 1) - rank;
+  if (!orientation)
+    rank = (NUM_RANKS - 1) - rank;
+  else
+    file = (NUM_FILES - 1) - file;
 
   if (debug_fptr) {
     fprintf(debug_fptr,"invalidate_square(): rank = %d, file = %d\n",
@@ -480,7 +487,10 @@ void do_paint(HWND hWnd)
         fprintf(debug_fptr,"do_paint: m = %d, n = %d\n",m,n);
       }
 
-      piece = get_piece2(board,(NUM_RANKS - 1) - m,n);
+      if (!orientation)
+        piece = get_piece2(curr_board,(NUM_RANKS - 1) - m,n);
+      else
+        piece = get_piece2(curr_board,m,(NUM_FILES - 1) - n);
 
       piece_offset = get_piece_offset(piece,m,n);
 
@@ -557,7 +567,10 @@ void do_paint(HWND hWnd)
         bSelectedFont = TRUE;
       }
 
-      buf[0] = '1' + (NUM_RANKS - 1) - m;
+      if (!orientation)
+        buf[0] = '1' + (NUM_RANKS - 1) - m;
+      else
+        buf[0] = '1' + m;
 
       TextOut(hdc,rect.left,rect.top,buf,1);
     }
@@ -582,7 +595,10 @@ void do_paint(HWND hWnd)
         bSelectedFont = TRUE;
       }
 
-      buf[0] = 'a' + m;
+      if (!orientation)
+        buf[0] = 'a' + m;
+      else
+        buf[0] = 'a' + (NUM_FILES - 1) - m;
 
       TextOut(hdc,rect.left,rect.top,buf,1);
     }
@@ -620,6 +636,56 @@ static void handle_char_input(HWND hWnd,WPARAM wParam)
     DestroyWindow(hWnd);
 }
 
+static void toggle_orientation(HWND hWnd)
+{
+  orientation ^= 1;
+
+  invalidate_board_and_coords(hWnd);
+}
+
+void do_new(HWND hWnd,unsigned char *board,char *name)
+{
+  char *cpt;
+
+  if ((cpt = getenv("DEBUG_ORIENTATION")) != NULL)
+    orientation = atoi(cpt);
+  else
+    orientation = 0;
+
+  set_initial_board(board);
+  invalidate_board(hWnd);
+
+  if (name == NULL)
+    wsprintf(szTitle,"%s - new position",szAppName);
+  else {
+    wsprintf(szTitle,"%s - %s",szAppName,
+      trim_name(name));
+  }
+
+  SetWindowText(hWnd,szTitle);
+}
+
+void do_read(HWND hWnd,LPSTR name,unsigned char *board)
+{
+  int retval;
+  char buf[256];
+
+  retval = read_position(name,board);
+
+  if (!retval) {
+    bHavePos = TRUE;
+
+    wsprintf(szTitle,"%s - %s",szAppName,
+      trim_name(name));
+    SetWindowText(hWnd,szTitle);
+    InvalidateRect(hWnd,NULL,TRUE);
+  }
+  else {
+    wsprintf(buf,read_position_failure,name,retval);
+    MessageBox(hWnd,buf,NULL,MB_OK);
+  }
+}
+
 //
 //  FUNCTION: WndProc(HWND, unsigned, WORD, LONG)
 //
@@ -642,17 +708,17 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 {
   int n;
   int wmId, wmEvent;
+  int loword;
+  int hiword;
   int file;
   int rank;
   int retval;
-  LPSTR name;
-  int bHaveName;
   HDC hdc;
   RECT rect;
 
   switch (message) {
     case WM_CREATE:
-      // load the Gargantua piece bitmap
+      // load the Chesspos piece bitmap
       chesspos_piece_bitmap_handle = LoadBitmap(
         hInst,chesspos_piece_bitmap_name);
 
@@ -674,7 +740,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
       OpenFileName.lpstrFileTitle    = NULL;
       OpenFileName.nMaxFileTitle     = 0;
       OpenFileName.lpstrInitialDir   = NULL;
-      OpenFileName.lpstrTitle        = "Open a Gargantua file";
+      OpenFileName.lpstrTitle        = "Open a position file";
       OpenFileName.Flags = OFN_FILEMUSTEXIST | OFN_HIDEREADONLY |
         OFN_EXTENSIONDIFFERENT;
       OpenFileName.nFileOffset       = 0;
@@ -683,6 +749,12 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
       OpenFileName.lCustData         = 0;
       OpenFileName.lpfnHook          = NULL;
       OpenFileName.lpTemplateName    = NULL;
+
+      // read the game passed on the command line, if there is one
+      if (szPosFile[0])
+        do_read(hWnd,szPosFile,curr_board);
+      else
+        do_new(hWnd,curr_board,NULL);
 
       InvalidateRect(hWnd,NULL,TRUE);
 
@@ -698,12 +770,27 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 
       break;
 
+    case WM_KEYDOWN:
+      switch (wParam) {
+        case VK_F2:
+          toggle_orientation(hWnd);
+
+          break;
+      }
+
+      break;
+
     case WM_COMMAND:
       wmId    = LOWORD(wParam); // Remember, these are...
       wmEvent = HIWORD(wParam); // ...different for Win32!
 
       //Parse the menu selections:
       switch (wmId) {
+        case IDM_TOGGLE_ORIENTATION:
+          toggle_orientation(hWnd);
+
+          break;
+
         case IDM_ABOUT:
            DialogBox(hInst,"AboutBox",hWnd,(DLGPROC)About);
 
@@ -720,9 +807,14 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
       break;
 
     case WM_LBUTTONDOWN:
-      file = (LOWORD(lParam) - board_x_offset) / width_in_pixels;
-      rank = (HIWORD(lParam) - board_y_offset) / height_in_pixels;
-      do_lbuttondown(hWnd,file,rank);
+      loword = LOWORD(lParam);
+      hiword = HIWORD(lParam);
+
+      if ((loword >= board_x_offset) && (hiword >= board_y_offset)) {
+        file = (loword - board_x_offset) / width_in_pixels;
+        rank = (hiword - board_y_offset) / height_in_pixels;
+        do_lbuttondown(hWnd,file,rank);
+      }
 
       break;
 
@@ -867,15 +959,18 @@ void do_lbuttondown(HWND hWnd,int file,int rank)
   bool bPromotion;
   int invalid_squares[4];
   int num_invalid_squares;
-  bool bBlack;
+  bool bOK;
 
   if (debug_fptr != NULL) {
     fprintf(debug_fptr,"do_lbuttondown: rank = %d, file = %d\n",rank,file);
   }
 
   if ((file >= 0) && (file < NUM_FILES) &&
-      (rank >= 0) && (rank < NUM_RANKS))
-    ;
-  else
+      (rank >= 0) && (rank < NUM_RANKS)) {
+    bOK = true;
+  }
+  else {
+    bOK = false;
     return;
+  }
 }
