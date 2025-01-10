@@ -1,4 +1,6 @@
-/*** Gargantua function declarations ***/
+/*** Chesspos function declarations ***/
+
+int read_position(char *filename,unsigned char *board);
 
 void set_initial_board(unsigned char *board);
 
