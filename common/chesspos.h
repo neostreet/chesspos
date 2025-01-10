@@ -1,9 +1,15 @@
-#define IDM_EXIT               108
+#define IDM_NEW                100
+#define IDM_OPEN               101
+#define IDM_SAVE               102
+#define IDM_SAVEAS             103
+#define IDM_EXIT               104
 
-#define IDI_CHESSPOS          109
-#define IDI_SMALL              110
+#define IDI_CHESSPOS           105
+#define IDI_SMALL              106
 
-#define IDM_ABOUT              214
+#define IDM_TOGGLE_ORIENTATION 107
+
+#define IDM_ABOUT              108
 
 #define IDC_STATIC -1
 
