@@ -1,6 +1,8 @@
 /*** Chesspos function declarations ***/
 
 int read_position(char *filename,unsigned char *board);
+int read_game_position(char *filename,struct game_position *position_pt);
+int write_game_position(char *filename,struct game_position *position_pt);
 
 void set_initial_board(unsigned char *board);
 
