@@ -44,3 +44,8 @@
 
 #define ANNOTATION_X (8 * XLEN + 2 + FONT_WIDTH)
 #define ANNOTATION_Y 5
+
+struct game_position {
+  int orientation;
+  unsigned char board[CHARS_IN_BOARD];  /* 8 columns * 8 rows / 2 (nibbles per char) */
+};
