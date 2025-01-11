@@ -33,6 +33,8 @@ static HANDLE chesspos_piece_bitmap_handle;
 static HDC hdc_compatible;
 
 static OPENFILENAME OpenFileName;
+static OPENFILENAME WriteFileName;
+static TCHAR szPosWriteFile[MAX_PATH];
 
 static char chesspos_filter[] = "\
 Chesspos files\0\
@@ -99,9 +101,6 @@ static HINSTANCE hInst;      // current instance
 static HWND hWndToolBar;
 static char szAppName[100];  // Name of the app
 static char szTitle[100];    // The title bar text
-
-int bHavePos;
-int afl_dbg;
 
 static struct game_position curr_position;
 
@@ -672,8 +671,6 @@ void do_read(HWND hWnd,LPSTR name,struct game_position *position_pt)
   retval = read_game_position(name,position_pt);
 
   if (!retval) {
-    bHavePos = TRUE;
-
     wsprintf(szTitle,"%s - %s",szAppName,
       trim_name(name));
     SetWindowText(hWnd,szTitle);
@@ -712,6 +709,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
   int file;
   int rank;
   int retval;
+  LPSTR name;
   HDC hdc;
   RECT rect;
 
@@ -749,6 +747,28 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
       OpenFileName.lpfnHook          = NULL;
       OpenFileName.lpTemplateName    = NULL;
 
+      WriteFileName.lStructSize = sizeof(OPENFILENAME);
+      WriteFileName.hwndOwner = hWnd;
+      WriteFileName.hInstance = hInst;
+      WriteFileName.lpstrFilter = chesspos_filter;
+      WriteFileName.lpstrCustomFilter = NULL;
+      WriteFileName.nMaxCustFilter = 0;
+      WriteFileName.nFilterIndex = 1;
+      WriteFileName.lpstrFile = szPosWriteFile;
+      WriteFileName.nMaxFile = sizeof szPosWriteFile;
+      WriteFileName.lpstrFileTitle = NULL;
+      WriteFileName.nMaxFileTitle = 0;
+      WriteFileName.lpstrInitialDir = NULL;
+      WriteFileName.lpstrTitle = NULL;
+      WriteFileName.Flags = OFN_OVERWRITEPROMPT | OFN_HIDEREADONLY |
+        OFN_EXTENSIONDIFFERENT;
+      WriteFileName.nFileOffset = 0;
+      WriteFileName.nFileExtension = 0;
+      WriteFileName.lpstrDefExt = chesspos_ext;
+      WriteFileName.lCustData = 0;
+      WriteFileName.lpfnHook = NULL;
+      WriteFileName.lpTemplateName = NULL;
+
       // read the game passed on the command line, if there is one
       if (szPosFile[0])
         do_read(hWnd,szPosFile,&curr_position);
@@ -785,6 +805,29 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 
       //Parse the menu selections:
       switch (wmId) {
+        case IDM_NEW:
+          do_new(hWnd,&curr_position,NULL);
+
+          break;
+
+        case IDM_OPEN:
+          // Call the common dialog function.
+          if (GetOpenFileName(&OpenFileName)) {
+            name = OpenFileName.lpstrFile;
+            do_read(hWnd,name,&curr_position);
+          }
+
+          break;
+
+        case IDM_SAVEAS:
+          // Call the common dialog function.
+          if (GetOpenFileName(&WriteFileName)) {
+            lstrcpy(szPosFile,szPosWriteFile);
+            write_game_position(szPosFile,&curr_position);
+          }
+
+          break;
+
         case IDM_TOGGLE_ORIENTATION:
           toggle_orientation(hWnd);
 
@@ -955,7 +998,6 @@ void do_lbuttondown(HWND hWnd,int file,int rank)
 {
   int n;
   int retval;
-  bool bPromotion;
   int invalid_squares[4];
   int num_invalid_squares;
   bool bOK;
