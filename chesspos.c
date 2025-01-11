@@ -139,6 +139,9 @@ int APIENTRY WinMain(HINSTANCE hInstance,
   width_in_pixels = WIDTH_IN_PIXELS;
   height_in_pixels = HEIGHT_IN_PIXELS;
 
+  highlight_rank = -1;
+  highlight_file = -1;
+
   cpt = getenv("DEBUG_CHESSPOS");
 
   if (cpt != NULL) {
@@ -495,7 +498,10 @@ void do_paint(HWND hWnd)
       if (piece_offset >= 0) {
         bigbmp_column = piece_offset;
 
-        bigbmp_row = 0;
+        if ((m == highlight_rank) && (n == highlight_file))
+          bigbmp_row = 2;
+        else
+          bigbmp_row = 0;
 
         if (debug_fptr && (debug_level == 2))
           fprintf(debug_fptr,"  bigbmp_column = %d, bigbmp_row = %d\n",bigbmp_column,bigbmp_row);
@@ -638,6 +644,11 @@ static void toggle_orientation(HWND hWnd)
 {
   curr_position.orientation ^= 1;
 
+  if (highlight_rank != -1) {
+    highlight_rank = (NUM_RANKS - 1) - highlight_rank;
+    highlight_file = (NUM_FILES - 1) - highlight_file;
+  }
+
   invalidate_board_and_coords(hWnd);
 }
 
@@ -674,6 +685,8 @@ void do_read(HWND hWnd,LPSTR name,struct game_position *position_pt)
     wsprintf(szTitle,"%s - %s",szAppName,
       trim_name(name));
     SetWindowText(hWnd,szTitle);
+    highlight_rank = -1;
+    highlight_file = -1;
     InvalidateRect(hWnd,NULL,TRUE);
   }
   else {
@@ -775,6 +788,8 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
       else
         do_new(hWnd,&curr_position,NULL);
 
+      highlight_rank = -1;
+      highlight_file = -1;
       InvalidateRect(hWnd,NULL,TRUE);
 
       break;
@@ -1000,18 +1015,29 @@ void do_lbuttondown(HWND hWnd,int file,int rank)
   int retval;
   int invalid_squares[4];
   int num_invalid_squares;
-  bool bOK;
 
   if (debug_fptr != NULL) {
     fprintf(debug_fptr,"do_lbuttondown: rank = %d, file = %d\n",rank,file);
   }
 
   if ((file >= 0) && (file < NUM_FILES) &&
-      (rank >= 0) && (rank < NUM_RANKS)) {
-    bOK = true;
-  }
-  else {
-    bOK = false;
+      (rank >= 0) && (rank < NUM_RANKS))
+    ;
+  else
     return;
+
+  if ((highlight_rank == rank) && (highlight_file == file)) {
+    highlight_rank = -1;
+    highlight_file = -1;
+
+    invalidate_rect(hWnd,rank,file);
+    return;
+  }
+
+  if (highlight_rank == -1) {
+    highlight_file = file;
+    highlight_rank = rank;
+
+    invalidate_rect(hWnd,rank,file);
   }
 }
