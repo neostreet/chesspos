@@ -9,7 +9,9 @@
 
 #define IDM_TOGGLE_ORIENTATION 107
 
-#define IDM_ABOUT              108
+#define IDM_TOGGLE_MOVE_MODE   108
+
+#define IDM_ABOUT              109
 
 #define IDC_STATIC -1
 
