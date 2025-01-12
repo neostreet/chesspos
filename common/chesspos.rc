@@ -58,9 +58,10 @@ BEGIN
         MENUITEM SEPARATOR
         MENUITEM "E&xit",                       IDM_EXIT
     END
-    POPUP "&View"
+    POPUP "&Options"
     BEGIN
-        MENUITEM "&Toggle orientation (F2)",    IDM_TOGGLE_ORIENTATION
+        MENUITEM "Toggle &orientation (F2)",    IDM_TOGGLE_ORIENTATION
+        MENUITEM "Toggle &move mode (F3)",      IDM_TOGGLE_MOVE_MODE
     END
     POPUP "&Help"
     BEGIN
