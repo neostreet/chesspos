@@ -652,6 +652,11 @@ static void toggle_orientation(HWND hWnd)
   invalidate_board_and_coords(hWnd);
 }
 
+static void toggle_move_mode()
+{
+  move_mode ^= 1;
+}
+
 void do_new(HWND hWnd,struct game_position *position_pt,char *name)
 {
   char *cpt;
@@ -790,6 +795,9 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 
       highlight_rank = -1;
       highlight_file = -1;
+
+      move_mode = 1;
+
       InvalidateRect(hWnd,NULL,TRUE);
 
       break;
@@ -808,6 +816,11 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
       switch (wParam) {
         case VK_F2:
           toggle_orientation(hWnd);
+
+          break;
+
+        case VK_F3:
+          toggle_move_mode();
 
           break;
       }
@@ -845,6 +858,11 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 
         case IDM_TOGGLE_ORIENTATION:
           toggle_orientation(hWnd);
+
+          break;
+
+        case IDM_TOGGLE_MOVE_MODE:
+          toggle_move_mode();
 
           break;
 
@@ -1011,20 +1029,9 @@ BOOL CenterWindow (HWND hwndChild, HWND hwndParent)
 
 void do_lbuttondown(HWND hWnd,int file,int rank)
 {
-  int n;
-  int retval;
-  int invalid_squares[4];
-  int num_invalid_squares;
-
   if (debug_fptr != NULL) {
     fprintf(debug_fptr,"do_lbuttondown: rank = %d, file = %d\n",rank,file);
   }
-
-  if ((file >= 0) && (file < NUM_FILES) &&
-      (rank >= 0) && (rank < NUM_RANKS))
-    ;
-  else
-    return;
 
   if ((highlight_rank == rank) && (highlight_file == file)) {
     highlight_rank = -1;
@@ -1034,10 +1041,44 @@ void do_lbuttondown(HWND hWnd,int file,int rank)
     return;
   }
 
+  if (!curr_position.orientation) {
+    if (highlight_rank == -1) {
+      move_start_square = ((NUM_RANKS - 1) - rank) * NUM_FILES + file;
+      move_start_square_piece = get_piece1(curr_position.board,move_start_square);
+    }
+    else {
+      move_end_square = ((NUM_RANKS - 1) - rank) * NUM_FILES + file;
+      move_end_square_piece = get_piece1(curr_position.board,move_end_square);
+    }
+  }
+  else {
+    if (highlight_rank == -1) {
+      move_start_square = rank * NUM_FILES + (NUM_FILES - 1) - file;
+      move_start_square_piece = get_piece1(curr_position.board,move_start_square);
+    }
+    else {
+      move_end_square = rank * NUM_FILES + (NUM_FILES - 1) - file;
+      move_end_square_piece = get_piece1(curr_position.board,move_end_square);
+    }
+  }
+
   if (highlight_rank == -1) {
     highlight_file = file;
     highlight_rank = rank;
 
     invalidate_rect(hWnd,rank,file);
+    return;
   }
+
+  set_piece1(curr_position.board,move_end_square,move_start_square_piece);
+
+  if (move_mode)
+    set_piece1(curr_position.board,move_start_square,0);
+
+  invalidate_rect(hWnd,highlight_rank,highlight_file);
+
+  highlight_rank = -1;
+  highlight_file = -1;
+
+  invalidate_rect(hWnd,rank,file);
 }
