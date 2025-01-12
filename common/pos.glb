@@ -13,6 +13,12 @@ GLOBAL FILE *debug_fptr;
 GLOBAL int highlight_rank;
 GLOBAL int highlight_file;
 
+GLOBAL int move_start_square;
+GLOBAL int move_start_square_piece;
+GLOBAL int move_end_square;
+GLOBAL int move_end_square_piece;
+GLOBAL int move_mode;
+
 #ifdef MAKE_GLOBALS_HERE
 char piece_ids[] = "RNBGK";
 char *piece_names[] = {
@@ -20,7 +26,7 @@ char *piece_names[] = {
   "ROOK",
   "KNIGHT",
   "BISHOP",
-  "GARGANTUA",
+  "QUEEN",
   "KING"
 };
 #else
