@@ -187,7 +187,7 @@ int APIENTRY WinMain(HINSTANCE hInstance,
   else
     window_extra_height = WINDOW_EXTRA_HEIGHT;
 
-  board_y_offset = font_height * 2;
+  board_y_offset = font_height;
 
   // Initialize global strings
   lstrcpy (szAppName, appname);
