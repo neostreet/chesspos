@@ -92,3 +92,51 @@ int write_game_position(char *filename,struct game_position *position_pt)
 
   return 0;
 }
+
+int write_board_to_binfile(unsigned char *board,char *filename)
+{
+  int fhndl;
+  unsigned int bytes_to_write;
+  unsigned int bytes_written;
+
+  if ((fhndl = open(filename,O_CREAT | O_TRUNC | O_WRONLY | O_BINARY,
+      S_IREAD | S_IWRITE)) == -1)
+    return 1;
+
+  bytes_to_write = CHARS_IN_BOARD;
+
+  bytes_written = write(fhndl,(char *)board,bytes_to_write);
+
+  if (bytes_written != bytes_to_write) {
+    close(fhndl);
+    return 2;
+  }
+
+  close(fhndl);
+
+  return 0;
+}
+
+int write_game_file_rank(char *filename,struct game_file_rank *file_rank_pt)
+{
+  int fhndl;
+  unsigned int bytes_to_write;
+  unsigned int bytes_written;
+
+  if ((fhndl = open(filename,O_CREAT | O_TRUNC | O_WRONLY | O_BINARY,
+      S_IREAD | S_IWRITE)) == -1)
+    return 1;
+
+  bytes_to_write = sizeof (struct game_file_rank);
+
+  bytes_written = write(fhndl,(char *)file_rank_pt,bytes_to_write);
+
+  if (bytes_written != bytes_to_write) {
+    close(fhndl);
+    return 2;
+  }
+
+  close(fhndl);
+
+  return 0;
+}
