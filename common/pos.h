@@ -46,6 +46,5 @@
 #define ANNOTATION_Y 5
 
 struct game_position {
-  char orientation;
   unsigned char board[CHARS_IN_BOARD];  /* 8 columns * 8 rows / 2 (nibbles per char) */
 };
