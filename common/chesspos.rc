@@ -55,6 +55,7 @@ BEGIN
         MENUITEM "Open &position file",         IDM_OPEN
         MENUITEM "&Save",                       IDM_SAVE
         MENUITEM "Save &As",                    IDM_SAVEAS
+        MENUITEM "Save As &B",                  IDM_SAVEAS_B
         MENUITEM SEPARATOR
         MENUITEM "E&xit",                       IDM_EXIT
     END
