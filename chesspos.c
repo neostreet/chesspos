@@ -1079,4 +1079,3 @@ void do_lbuttondown(HWND hWnd,int file,int rank)
 
   invalidate_rect(hWnd,rank,file);
 }
-a
