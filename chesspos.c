@@ -38,18 +38,16 @@ static TCHAR szPosWriteFile[MAX_PATH];
 
 static char chesspos_filter[] = "\
 Chesspos files\0\
-*.bd\0\
+*.pos\0\
 All files (*.*)\0\
 *.*\0\
 \0\
 \0\
 ";
-static char chesspos_ext[] = "bd";
+static char chesspos_ext[] = "pos";
 
 static TCHAR szPosFile[MAX_PATH];
 static TCHAR szPosFileB[MAX_PATH];
-
-static int orientation;
 
 static int board_x_offset;
 static int board_y_offset;
@@ -106,6 +104,9 @@ static char szAppName[100];  // Name of the app
 static char szTitle[100];    // The title bar text
 
 static struct game_position curr_position;
+
+static int save_file;
+static int save_rank;
 
 // Forward declarations of functions included in this code module:
 
@@ -418,7 +419,7 @@ void invalidate_square(HWND hWnd,int square)
   rank = RANK_OF(square);
   file = FILE_OF(square);
 
-  if (!orientation)
+  if (!curr_position.orientation)
     rank = (NUM_RANKS - 1) - rank;
   else
     file = (NUM_FILES - 1) - file;
@@ -491,7 +492,7 @@ void do_paint(HWND hWnd)
         fprintf(debug_fptr,"do_paint: m = %d, n = %d\n",m,n);
       }
 
-      if (!orientation)
+      if (!curr_position.orientation)
         piece = get_piece2(curr_position.board,(NUM_RANKS - 1) - m,n);
       else
         piece = get_piece2(curr_position.board,m,(NUM_FILES - 1) - n);
@@ -574,7 +575,7 @@ void do_paint(HWND hWnd)
         bSelectedFont = TRUE;
       }
 
-      if (!orientation)
+      if (!curr_position.orientation)
         buf[0] = '1' + (NUM_RANKS - 1) - m;
       else
         buf[0] = '1' + m;
@@ -602,7 +603,7 @@ void do_paint(HWND hWnd)
         bSelectedFont = TRUE;
       }
 
-      if (!orientation)
+      if (!curr_position.orientation)
         buf[0] = 'a' + m;
       else
         buf[0] = 'a' + (NUM_FILES - 1) - m;
@@ -645,7 +646,7 @@ static void handle_char_input(HWND hWnd,WPARAM wParam)
 
 static void toggle_orientation(HWND hWnd)
 {
-  orientation ^= 1;
+  curr_position.orientation ^= 1;
 
   if (highlight_rank != -1) {
     highlight_rank = (NUM_RANKS - 1) - highlight_rank;
@@ -1065,7 +1066,7 @@ void do_lbuttondown(HWND hWnd,int file,int rank)
     return;
   }
 
-  if (!orientation) {
+  if (!curr_position.orientation) {
     if (highlight_rank == -1) {
       move_start_square = ((NUM_RANKS - 1) - rank) * NUM_FILES + file;
       move_start_square_piece = get_piece1(curr_position.board,move_start_square);
@@ -1093,6 +1094,9 @@ void do_lbuttondown(HWND hWnd,int file,int rank)
     invalidate_rect(hWnd,rank,file);
     return;
   }
+
+  save_file = file;
+  save_rank = rank;
 
   set_piece1(curr_position.board,move_end_square,move_start_square_piece);
 
