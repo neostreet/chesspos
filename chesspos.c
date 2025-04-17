@@ -47,7 +47,8 @@ All files (*.*)\0\
 static char chesspos_ext[] = "pos";
 
 static TCHAR szPosFile[MAX_PATH];
-static TCHAR szPosFileB[MAX_PATH];
+static TCHAR szBoard[MAX_PATH];
+static TCHAR szFileRank[MAX_PATH];
 
 static int board_x_offset;
 static int board_y_offset;
@@ -699,24 +700,54 @@ void do_read(HWND hWnd,LPSTR name,struct game_position *position_pt)
   }
 }
 
-void build_pos_b_filename()
+static int build_bd_filename(
+  char *pos_filename,
+  int pos_filename_len,
+  char *bd_filename,
+  int max_filename_len)
 {
-  int m;
   int n;
-  int len;
 
-  len = strlen(szPosFile);
-
-  m = 0;
-
-  for (n = 0; n < len; n++) {
-    if (szPosFile[n] == '.')
-     szPosFileB[m++] = 'b';
-
-    szPosFileB[m++] = szPosFile[n];
+  for (n = 0; n < pos_filename_len; n++) {
+    if (pos_filename[n] == '.')
+      break;
   }
 
-  szPosFileB[m] = 0;
+  if (n == pos_filename_len)
+    return 1;
+
+  if (n + 3 > max_filename_len - 1)
+    return 2;
+
+  strcpy(bd_filename,pos_filename);
+  strcpy(&bd_filename[n+1],"bd");
+
+  return 0;
+}
+
+static int build_file_rank_filename(
+  char *pos_filename,
+  int pos_filename_len,
+  char *file_rank_filename,
+  int max_filename_len)
+{
+  int n;
+
+  for (n = 0; n < pos_filename_len; n++) {
+    if (pos_filename[n] == '.')
+      break;
+  }
+
+  if (n == pos_filename_len)
+    return 1;
+
+  if (n + 10 > max_filename_len - 1)
+    return 2;
+
+  strcpy(file_rank_filename,pos_filename);
+  strcpy(&file_rank_filename[n+1],"file_rank");
+
+  return 0;
 }
 
 //
@@ -749,6 +780,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
   LPSTR name;
   HDC hdc;
   RECT rect;
+  struct game_file_rank file_rank;
 
   switch (message) {
     case WM_CREATE:
@@ -876,8 +908,14 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
           break;
 
         case IDM_SAVEAS_B:
-          build_pos_b_filename();
-          write_game_position(szPosFileB,&curr_position);
+          if (!build_bd_filename(szPosFile,MAX_PATH,szBoard,MAX_PATH))
+            write_board_to_binfile(curr_position.board,szBoard);
+
+          if (!build_file_rank_filename(szPosFile,MAX_PATH,szFileRank,MAX_PATH)) {
+            file_rank.file = save_file;
+            file_rank.rank = save_rank;
+            write_game_file_rank(szFileRank,&file_rank);
+          }
 
           break;
 
