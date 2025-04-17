@@ -47,6 +47,7 @@ All files (*.*)\0\
 static char chesspos_ext[] = "bd";
 
 static TCHAR szPosFile[MAX_PATH];
+static TCHAR szPosFileB[MAX_PATH];
 
 static int orientation;
 
@@ -697,6 +698,26 @@ void do_read(HWND hWnd,LPSTR name,struct game_position *position_pt)
   }
 }
 
+void build_pos_b_filename()
+{
+  int m;
+  int n;
+  int len;
+
+  len = strlen(szPosFile);
+
+  m = 0;
+
+  for (n = 0; n < len; n++) {
+    if (szPosFile[n] == '.')
+     szPosFileB[m++] = 'b';
+
+    szPosFileB[m++] = szPosFile[n];
+  }
+
+  szPosFileB[m] = 0;
+}
+
 //
 //  FUNCTION: WndProc(HWND, unsigned, WORD, LONG)
 //
@@ -850,6 +871,12 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
             lstrcpy(szPosFile,szPosWriteFile);
             write_game_position(szPosFile,&curr_position);
           }
+
+          break;
+
+        case IDM_SAVEAS_B:
+          build_pos_b_filename();
+          write_game_position(szPosFileB,&curr_position);
 
           break;
 
