@@ -4,7 +4,6 @@ int read_game_position(char *filename,struct game_position *position_pt);
 int write_game_position(char *filename,struct game_position *position_pt);
 
 int write_board_to_binfile(unsigned char *board,char *filename);
-int write_game_file_rank(char *filename,struct game_file_rank *file_rank_pt);
 
 void set_initial_board(unsigned char *board);
 
