@@ -48,7 +48,6 @@ static char chesspos_ext[] = "pos";
 
 static TCHAR szPosFile[MAX_PATH];
 static TCHAR szBoard[MAX_PATH];
-static TCHAR szFileRank[MAX_PATH];
 
 static int board_x_offset;
 static int board_y_offset;
@@ -105,9 +104,6 @@ static char szAppName[100];  // Name of the app
 static char szTitle[100];    // The title bar text
 
 static struct game_position curr_position;
-
-static int save_file;
-static int save_rank;
 
 // Forward declarations of functions included in this code module:
 
@@ -725,31 +721,6 @@ static int build_bd_filename(
   return 0;
 }
 
-static int build_file_rank_filename(
-  char *pos_filename,
-  int pos_filename_len,
-  char *file_rank_filename,
-  int max_filename_len)
-{
-  int n;
-
-  for (n = 0; n < pos_filename_len; n++) {
-    if (pos_filename[n] == '.')
-      break;
-  }
-
-  if (n == pos_filename_len)
-    return 1;
-
-  if (n + 10 > max_filename_len - 1)
-    return 2;
-
-  strcpy(file_rank_filename,pos_filename);
-  strcpy(&file_rank_filename[n+1],"file_rank");
-
-  return 0;
-}
-
 //
 //  FUNCTION: WndProc(HWND, unsigned, WORD, LONG)
 //
@@ -780,7 +751,6 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
   LPSTR name;
   HDC hdc;
   RECT rect;
-  struct game_file_rank file_rank;
 
   switch (message) {
     case WM_CREATE:
@@ -910,12 +880,6 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
         case IDM_SAVEAS_B:
           if (!build_bd_filename(szPosFile,MAX_PATH,szBoard,MAX_PATH))
             write_board_to_binfile(curr_position.board,szBoard);
-
-          if (!build_file_rank_filename(szPosFile,MAX_PATH,szFileRank,MAX_PATH)) {
-            file_rank.file = save_file;
-            file_rank.rank = save_rank;
-            write_game_file_rank(szFileRank,&file_rank);
-          }
 
           break;
 
@@ -1132,9 +1096,6 @@ void do_lbuttondown(HWND hWnd,int file,int rank)
     invalidate_rect(hWnd,rank,file);
     return;
   }
-
-  save_file = file;
-  save_rank = rank;
 
   set_piece1(curr_position.board,move_end_square,move_start_square_piece);
 
