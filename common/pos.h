@@ -49,8 +49,3 @@ struct game_position {
   char orientation;
   unsigned char board[CHARS_IN_BOARD];  /* 8 columns * 8 rows / 2 (nibbles per char) */
 };
-
-struct game_file_rank {
-  char file;
-  char rank;
-};
