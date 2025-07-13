@@ -51,13 +51,25 @@ int read_game_position(char *filename,struct game_position *position_pt)
   int fhndl;
   unsigned int bytes_to_read;
   unsigned int bytes_read;
+  bool bBoard;
+
+  if (strstr(filename,".bd"))
+    bBoard = true;
+  else
+    bBoard = false;
 
   if ((fhndl = open(filename,O_RDONLY | O_BINARY)) == -1)
     return 1;
 
-  bytes_to_read = sizeof (struct game_position);
-
-  bytes_read = read(fhndl,(char *)position_pt,bytes_to_read);
+  if (!bBoard) {
+    bytes_to_read = sizeof (struct game_position);
+    bytes_read = read(fhndl,(char *)position_pt,bytes_to_read);
+  }
+  else {
+    bytes_to_read = sizeof (struct game_position) -1;
+    position_pt->orientation = 0;
+    bytes_read = read(fhndl,(char *)position_pt->board,bytes_to_read);
+  }
 
   if (bytes_read != bytes_to_read) {
     close(fhndl);
